@@ -1,9 +1,9 @@
 extern crate mosquitto_client_wrapper as mosq;
-use mosq::Mosquitto;
+use mosq::{Mosquitto, Result};
 use std::{thread, time};
 
-fn main() {
-    let m = Mosquitto::new("test");
+fn main() -> Result<()> {
+    let m = Mosquitto::new("test")?;
     
     m.connect("localhost",1883,5).expect("can't connect");
     m.subscribe("bilbo/#",1).expect("can't subscribe to bonzo");
@@ -28,4 +28,5 @@ fn main() {
     
     m.loop_until_disconnect(200).expect("broken loop");
     println!("received {} messages",mc.data);
+    Ok(())
 }

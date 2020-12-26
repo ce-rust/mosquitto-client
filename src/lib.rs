@@ -11,7 +11,7 @@
 //!
 //! ```rust
 //! # fn run() -> std::result::Result<(),Box<dyn std::error::Error>> {
-//! let m = mosquitto_client_wrapper::Mosquitto::new("test");
+//! let m = mosquitto_client_wrapper::Mosquitto::new("test")?;
 //!
 //! m.connect("localhost",1883,5)?;
 //!
@@ -41,7 +41,7 @@
 //!
 //! ```rust,no_run
 //! # fn run() -> std::result::Result<(),Box<dyn std::error::Error>> {
-//! let m = mosquitto_client_wrapper::Mosquitto::new("test");
+//! let m = mosquitto_client_wrapper::Mosquitto::new("test")?;
 //!
 //! m.connect("localhost",1883,5)?;
 //! let bonzo = m.subscribe("bonzo/#",0)?;
@@ -79,7 +79,7 @@
 //! # fn run() -> std::result::Result<(),Box<dyn std::error::Error>> {
 //! use std::{thread,time};
 //!
-//! let m = mosquitto_client_wrapper::Mosquitto::new("test");
+//! let m = mosquitto_client_wrapper::Mosquitto::new("test")?;
 //!
 //! m.connect("localhost",1883,10)?;
 //! m.subscribe("bilbo/#",1)?;
@@ -368,24 +368,24 @@ pub struct Mosquitto {
 impl Mosquitto {
     /// create a new mosquitto instance, providing a client name.
     /// Clients connecting to a broker must have unique names
-    pub fn new(id: &str) -> Mosquitto {
+    pub fn new(id: &str) -> Result<Mosquitto> {
         Mosquitto::new_session(id, true)
     }
 
     /// create a new mosquitto instance with specified clean session flag.
     /// Clients connecting to a broker must have unique names
-    pub fn new_session(id: &str, clean_session: bool) -> Mosquitto {
+    pub fn new_session(id: &str, clean_session: bool) -> Result<Mosquitto> {
         if INSTANCES.fetch_add(1, Ordering::SeqCst) == 0 {
             // println!("initializing mosq");
-            unsafe { mosquitto_lib_init(); }
+            Error::result("mosquitto_lib_init", unsafe { mosquitto_lib_init() })?;
         }
         let mosq = unsafe {
             mosquitto_new(cs(id).as_ptr(), clean_session, null_mut())
         };
-        Mosquitto {
+        Ok(Mosquitto {
             mosq: mosq,
             owned: true,
-        }
+        })
     }
 
     /// create a Callback object so you can listen to events.
@@ -424,8 +424,9 @@ impl Mosquitto {
     }
 
     /// call if you wish to use Mosquitto in a multithreaded environment.
-    pub fn threaded(&self) {
-        unsafe { mosquitto_threaded_set(self.mosq, true); }
+    pub fn threaded(&self) -> Result<()> {
+        Error::result("mosquitto_threaded_set",
+                      unsafe { mosquitto_threaded_set(self.mosq, true) })
     }
 
     /// set an int option
@@ -838,3 +839,19 @@ unsafe extern "C" fn mosq_log_callback<T>(_: *mut Mosq, data: *mut Data, level: 
     }
 }
 
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn set_option() -> Result<()> {
+        let m = Mosquitto::new("test")?;
+        m.set_option(11, 0)
+    }
+
+    #[test]
+    fn set_threaded() -> Result<()> {
+        let m = Mosquitto::new("test")?;
+        m.threaded()
+    }
+}

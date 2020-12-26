@@ -3,7 +3,7 @@ use mosq::Mosquitto;
 use std::thread;
 
 fn run() -> mosq::Result<()> {
-    let m = Mosquitto::new("test");
+    let m = Mosquitto::new("test")?;
 
     m.connect_wait("localhost",1883,5,300)?;
     let bilbo = m.subscribe("bilbo/#",1)?;
