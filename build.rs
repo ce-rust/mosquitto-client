@@ -4,6 +4,7 @@ fn main() {
     bundled::main();
 }
 
+const MOSQUITTO_DIR: &str = "mosquitto";
 const MOSQUITTO_GIT_URL: &str = "https://github.com/eclipse/mosquitto.git";
 const MOSQUITTO_VERSION: &str = "2.0.4";
 
@@ -65,40 +66,38 @@ mod bundled {
     use std::path::Path;
     use std::process;
     use std::env;
+    use std::fs;
+    use std::str;
 
+    extern crate anyhow;
     extern crate cmake;
+
+    use self::anyhow::Result;
 
     pub fn main() {
         println!("Running the bundled build");
 
-        let args = vec![
-            "clone".to_string(),
-            env::var("MOSQUITTO_GIT_URL").unwrap_or(MOSQUITTO_GIT_URL.to_string()),
-            "--depth=1".to_string()
-        ];
-
-        if let Err(e) = Command::new("git").args(&args).status() {
-            panic!("failed to clone the git repo: {:?}", e);
+        if let Err(e) = execute() {
+            panic!("failed to build bundled library: {:?}", e)
         }
+    }
 
-        if let Ok(hash) = env::var("MOSQUITTO_GIT_HASH") {
-            if let Err(e) = Command::new("git").args(&["fetch", "--depth", "1", "origin", hash.as_str()]).status() {
-                panic!("failed to fetch the git hash: {:?}", e);
-            }
-            if let Err(e) = Command::new("git").args(&["checkout", hash.as_str()]).status() {
-                panic!("failed to checkout the git hash: {:?}", e);
-            }
-        }
+    fn execute() -> Result<()> {
+        checkout_lib()?;
+        bundle_lib()
+    }
 
+    fn bundle_lib() -> Result<()> {
         let mut cmk_cfg = cmake::Config::new("mosquitto");
-        cmk_cfg.define("WITH_BUNDLED_DEPS", "ON");
-        cmk_cfg.define("WITH_EC", "OFF");
-        cmk_cfg.define("WITH_TLS", "OFF");
-        cmk_cfg.define("WITH_TLS_PSK", "OFF");
-        cmk_cfg.define("WITH_APPS", "OFF");
-        cmk_cfg.define("WITH_PLUGINS", "OFF");
-        cmk_cfg.define("DOCUMENTATION", "OFF");
-        let cmk = cmk_cfg.build();
+        let cmk = cmk_cfg.define("WITH_BUNDLED_DEPS", "on")
+            .define("WITH_EC", "off")
+            .define("WITH_TLS", "off")
+            .define("WITH_TLS_PSK", "off")
+            .define("WITH_APPS", "off")
+            .define("WITH_PLUGINS", "off")
+            .define("DOCUMENTATION", "off")
+            .define("WITH_CJSON", "off")
+            .build();
 
         let lib_path = if cmk.join("lib").exists() {
             "lib"
@@ -126,5 +125,48 @@ mod bundled {
         // we add the folder where all the libraries are built to the path search
         println!("cargo:rustc-link-search=native={}", lib_dir.display());
         println!("cargo:rustc-link-lib={}", "mosquitto");
+        Ok(())
+    }
+
+    fn checkout_lib() -> Result<()> {
+        let git_path = Path::new(MOSQUITTO_DIR);
+        if git_path.is_dir() {
+            fs::remove_dir_all(git_path)?;
+        }
+
+        let args = vec![
+            "clone".to_string(),
+            env::var("MOSQUITTO_GIT_URL").unwrap_or(MOSQUITTO_GIT_URL.to_string()),
+            "--depth=1".to_string(),
+            MOSQUITTO_DIR.to_string(),
+        ];
+
+        if let Err(e) = Command::new("git").args(&args).status() {
+            panic!("failed to clone the git repo: {:?}", e);
+        }
+
+        let hash = env::var("MOSQUITTO_GIT_HASH");
+        if let Ok(hash) = hash.as_ref() {
+            if let Err(e) = Command::new("git").current_dir(MOSQUITTO_DIR).args(&["fetch", "--depth", "1", "origin", hash.as_str()]).status() {
+                panic!("failed to fetch the git hash: {:?}", e);
+            }
+            if let Err(e) = Command::new("git").current_dir(MOSQUITTO_DIR).args(&["checkout", hash.as_str()]).status() {
+                panic!("failed to checkout the git hash: {:?}", e);
+            }
+        }
+
+        let output = Command::new("git").current_dir(MOSQUITTO_DIR).args(&["rev-parse", "HEAD"]).output()?;
+        let output = str::from_utf8(&output.stdout)?;
+        if let Ok(hash) = hash.as_ref() {
+            if output.ne(format!("{}\n", hash).as_str()) {
+                panic!("was not able to get correct hash: found {}, expected {}", output, hash);
+            } else {
+                println!("debug:Hash: {}", output);
+                Ok(())
+            }
+        } else {
+            println!("debug:Hash: {}", output);
+            Ok(())
+        }
     }
 }
