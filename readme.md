@@ -55,15 +55,13 @@ event-specific data - in this case a message struct.
 `loop_until_disconnect` is a relative of `loop_forever` which ends without error if we
 explicitly disconnect from the broker.
 
-## Prerequisites
+## Features
 
-On Debian/Ubuntu systems, will require the client `libmosquitto1` to be installed (the dev package is
-not needed).  (On RPM-based systems, it will just be `libmosquitto`).
+### bundled (on by default)
 
-You will also need the broker `mosquitto` package for testing.
+This feature will automatically download and build the mosquitto client library.
+By default, the master branch is taken. This could be overwritten with the following variables:
 
-For MacOS, Mosquitto is available through **brew**:
+*  `MOSQUITTO_GIT_URL` Url of the git repository; by default [https://github.com/eclipse/mosquitto.git](https://github.com/eclipse/mosquitto.git)
+*  `MOSQUITTO_GIT_HASH` Git hash to checkout for the build; by default none
 
-```
-brew install mosquitto
-```

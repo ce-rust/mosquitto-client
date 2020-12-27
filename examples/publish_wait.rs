@@ -11,7 +11,7 @@ fn as_millis(d: Duration) -> f64 {
 const TIMEOUT: i32 = 300;
 
 fn run() -> Result<(),Box<dyn std::error::Error>> {
-    let m = Mosquitto::new("test");
+    let m = Mosquitto::new("test")?;
 
     let t = Instant::now();
 

@@ -4,7 +4,7 @@ use mosq::Mosquitto;
 use std::error::Error;
 
 fn go() -> Result<(),Box<dyn Error>> {
-    let m = Mosquitto::new("test");
+    let m = Mosquitto::new("test")?;
 
     m.connect("localhost",1883,5)?;
 
