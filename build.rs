@@ -71,7 +71,7 @@ mod bundled {
     extern crate anyhow;
     extern crate cmake;
 
-    use self::anyhow::Result;
+    use self::anyhow::{Result, Error};
 
     pub fn main() {
         println!("Running the bundled build");
@@ -137,35 +137,41 @@ mod bundled {
     }
 
     fn checkout_lib() -> Result<()> {
+        let git_parent_path = get_mosquitto_parent_dir()?;
         let git_path = get_mosquitto_dir()?;
+        println!("checkout_lib to {} in {}", git_path.to_str().unwrap(), git_parent_path.to_str().unwrap());
         if git_path.is_dir() {
-            fs::remove_dir_all(git_path)?;
-        } else if !get_mosquitto_parent_dir()?.is_dir() {
-            fs::create_dir_all(get_mosquitto_parent_dir()?)?;
+            fs::remove_dir_all(&git_path)?;
+        } else if !git_parent_path.is_dir() {
+            fs::create_dir_all(&git_parent_path)?;
+        }
+
+        if !git_parent_path.is_dir() {
+            return Err(Error::msg("was not able to create directory"));
         }
 
         let args = vec![
             "clone".to_string(),
             env::var("MOSQUITTO_GIT_URL").unwrap_or(MOSQUITTO_GIT_URL.to_string()),
             "--depth=1".to_string(),
-            get_mosquitto_dir()?.to_str().unwrap().to_string(),
+            git_path.to_str().unwrap().to_string(),
         ];
 
-        if let Err(e) = Command::new("git").current_dir(get_mosquitto_parent_dir()?).args(&args).status() {
+        if let Err(e) = Command::new("git").current_dir(&git_parent_path).args(&args).status() {
             panic!("failed to clone the git repo: {:?}", e);
         }
 
         let hash = env::var("MOSQUITTO_GIT_HASH");
         if let Ok(hash) = hash.as_ref() {
-            if let Err(e) = Command::new("git").current_dir(get_mosquitto_dir()?).args(&["fetch", "--depth", "1", "origin", hash.as_str()]).status() {
+            if let Err(e) = Command::new("git").current_dir(&git_path).args(&["fetch", "--depth", "1", "origin", hash.as_str()]).status() {
                 panic!("failed to fetch the git hash: {:?}", e);
             }
-            if let Err(e) = Command::new("git").current_dir(get_mosquitto_dir()?).args(&["checkout", hash.as_str()]).status() {
+            if let Err(e) = Command::new("git").current_dir(&git_path).args(&["checkout", hash.as_str()]).status() {
                 panic!("failed to checkout the git hash: {:?}", e);
             }
         }
 
-        let output = Command::new("git").current_dir(get_mosquitto_dir()?).args(&["rev-parse", "HEAD"]).output()?;
+        let output = Command::new("git").current_dir(&git_path).args(&["rev-parse", "HEAD"]).output()?;
         let output = str::from_utf8(&output.stdout)?;
         if let Ok(hash) = hash.as_ref() {
             if output.ne(format!("{}\n", hash).as_str()) {
