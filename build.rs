@@ -152,8 +152,8 @@ mod bundled {
 
         let args = vec![
             "clone".to_string(),
-            env::var("MOSQUITTO_GIT_URL").unwrap_or(MOSQUITTO_GIT_URL.to_string()),
             "--depth=1".to_string(),
+            env::var("MOSQUITTO_GIT_URL").unwrap_or(MOSQUITTO_GIT_URL.to_string()),
             git_path.to_str().unwrap().to_string(),
         ];
 

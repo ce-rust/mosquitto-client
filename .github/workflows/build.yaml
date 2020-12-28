@@ -1,0 +1,13 @@
+name: build
+
+on: push
+
+jobs:
+  build:
+    name: build lib in docker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: build lib in docker
+        run: docker build .
