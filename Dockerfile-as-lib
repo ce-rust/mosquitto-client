@@ -1,0 +1,16 @@
+FROM rust:1.47
+
+RUN apt-get update && apt-get install -y cmake clang  \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR app
+COPY ./docker-as-lib .
+
+# add cargo toml and empty lib to fetch dependencies
+COPY ./Cargo.toml ./mosquitto-client-wrapper/Cargo.toml
+RUN mkdir ./mosquitto-client-wrapper/src/
+RUN  touch ./mosquitto-client-wrapper/src/lib.rs
+
+RUN cargo fetch
+COPY . ./mosquitto-client-wrapper
+RUN cargo build

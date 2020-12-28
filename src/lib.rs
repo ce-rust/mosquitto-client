@@ -1,3 +1,5 @@
+//! ![build](https://github.com/ce-rust/mosquitto-client-wrapper/workflows/build/badge.svg)
+//!
 //! Mosquitto is a popular MQTT broker implemented in C. Although there are pure
 //! Rust MQTT clients, it is still useful to have a binding to the Mosquitto client.
 //!

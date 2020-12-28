@@ -1,5 +1,8 @@
 # A Rust interface to the Mosquitto MQTT broker client
 
+![build](https://github.com/ce-rust/mosquitto-client-wrapper/workflows/build/badge.svg)
+[![Crates.io](https://img.shields.io/crates/v/mosquitto-client-wrapper)](https://docs.rs/crate/mosquitto-client-wrapper/*)
+
 Mosquitto is a popular MQTT broker implemented in C. Although there are pure
 Rust MQTT clients, it is still useful to have a binding to the Mosquitto client.
 
