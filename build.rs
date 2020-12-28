@@ -86,8 +86,12 @@ mod bundled {
         bundle_lib()
     }
 
+    fn get_mosquitto_parent_dir() -> Result<PathBuf> {
+        Ok(PathBuf::from(env::var("OUT_DIR")?))
+    }
+
     fn get_mosquitto_dir() -> Result<PathBuf> {
-        let p = PathBuf::from(env::var("OUT_DIR")?);
+        let p = get_mosquitto_parent_dir()?;
         Ok(p.join("mosquitto"))
     }
 
@@ -136,6 +140,8 @@ mod bundled {
         let git_path = get_mosquitto_dir()?;
         if git_path.is_dir() {
             fs::remove_dir_all(git_path)?;
+        } else if !get_mosquitto_parent_dir()?.is_dir() {
+            fs::create_dir_all(get_mosquitto_parent_dir()?)?;
         }
 
         let args = vec![
@@ -145,7 +151,7 @@ mod bundled {
             get_mosquitto_dir()?.to_str().unwrap().to_string(),
         ];
 
-        if let Err(e) = Command::new("git").current_dir(PathBuf::from(env::var("OUT_DIR")?)).args(&args).status() {
+        if let Err(e) = Command::new("git").current_dir(get_mosquitto_parent_dir()?).args(&args).status() {
             panic!("failed to clone the git repo: {:?}", e);
         }
 
