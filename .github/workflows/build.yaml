@@ -11,3 +11,11 @@ jobs:
         uses: actions/checkout@v2
       - name: build lib in docker
         run: docker build .
+  build-as-lib:
+      name: build lib as dependency of a dummy project
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v2
+        - name: build lib in docker
+          run: docker build --file=Dockerfile-as-lib .
