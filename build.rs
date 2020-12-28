@@ -186,3 +186,7 @@ mod bundled {
         }
     }
 }
+#[cfg(not(feature = "bundled"))]
+mod bundled {
+    pub fn main() {}
+}
