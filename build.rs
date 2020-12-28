@@ -145,7 +145,7 @@ mod bundled {
             get_mosquitto_dir()?.to_str().unwrap().to_string(),
         ];
 
-        if let Err(e) = Command::new("git").args(&args).status() {
+        if let Err(e) = Command::new("git").current_dir(PathBuf::from(env::var("OUT_DIR")?)).args(&args).status() {
             panic!("failed to clone the git repo: {:?}", e);
         }
 
