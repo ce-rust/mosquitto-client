@@ -105,6 +105,7 @@ mod bundled {
             .define("WITH_PLUGINS", "off")
             .define("DOCUMENTATION", "off")
             .define("WITH_CJSON", "off")
+            .define("CMAKE_VERBOSE_MAKEFILE", "on")
             .build();
 
         let lib_path = if cmk.join("lib").exists() {

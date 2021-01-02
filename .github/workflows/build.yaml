@@ -19,3 +19,11 @@ jobs:
           uses: actions/checkout@v2
         - name: build lib in docker
           run: docker build --file=Dockerfile-as-lib .
+  build-for-armv7:
+      name: build lib in docker for armv7
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v2
+        - name: build lib in docker for armv7
+          run: docker build --file=Dockerfile-armv7 .
