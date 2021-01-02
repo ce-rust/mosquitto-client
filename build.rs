@@ -71,7 +71,9 @@ mod bundled {
     extern crate anyhow;
     extern crate cmake;
 
-    use self::anyhow::{Result, Error, Context};
+    use self::anyhow::{Result, Error};
+    #[cfg(target_os = "linux")]
+    use self::anyhow::Context;
 
     struct LibInfos {
         lib_dir: PathBuf,
