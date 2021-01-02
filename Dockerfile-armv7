@@ -10,6 +10,9 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 
 RUN rustup target add armv7-unknown-linux-gnueabihf
 
+ENV MOSQUITTO_CC=gcc
+ENV MOSQUITTO_CROSS_COMPILER=arm-linux-gnueabihf-
+
 WORKDIR app
 COPY . .
 RUN cargo build --target armv7-unknown-linux-gnueabihf

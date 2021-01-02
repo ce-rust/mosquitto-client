@@ -68,3 +68,9 @@ By default, the master branch is taken. This could be overwritten with the follo
 *  `MOSQUITTO_GIT_URL` Url of the git repository; by default [https://github.com/eclipse/mosquitto.git](https://github.com/eclipse/mosquitto.git)
 *  `MOSQUITTO_GIT_HASH` Git hash to checkout for the build; by default none
 
+#### Cross compilation
+
+The library could be cross-compiled. The following env parameters have to be set for that:
+
+*  `MOSQUITTO_CROSS_COMPILER` default none, e.g. `arm-linux-gnueabihf-`
+*  `MOSQUITTO_CC` default `gcc`

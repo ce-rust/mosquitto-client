@@ -11,7 +11,7 @@
 //!
 //! For example, publishing a message and confirming that it is sent:
 //!
-//! ```rust
+//! ```rust,no_run
 //! # fn run() -> std::result::Result<(),Box<dyn std::error::Error>> {
 //! let m = mosquitto_client_wrapper::Mosquitto::new("test")?;
 //!
@@ -54,8 +54,7 @@
 //!     if ! msg.retained() { // not interested in any retained messages!
 //!         if bonzo.matches(&msg) {
 //!             println!("bonzo {:?}",msg);
-//!         } else
-//!         if frodo.matches(&msg) {
+//!         } else if frodo.matches(&msg) {
 //!             println!("frodo {:?}",msg);
 //!         }
 //!     }
@@ -77,7 +76,7 @@
 //! callback will be a mutable reference to that value (this avoids the usual
 //! shenanigans involved with closures having mutable borrows)
 //!
-//! ```rust
+//! ```rust,no_run
 //! # fn run() -> std::result::Result<(),Box<dyn std::error::Error>> {
 //! use std::{thread,time};
 //!

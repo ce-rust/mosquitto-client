@@ -71,7 +71,12 @@ mod bundled {
     extern crate anyhow;
     extern crate cmake;
 
-    use self::anyhow::{Result, Error};
+    use self::anyhow::{Result, Error, Context};
+
+    struct LibInfos {
+        lib_dir: PathBuf,
+        include_dir: PathBuf,
+    }
 
     pub fn main() {
         println!("Running the bundled build");
@@ -83,7 +88,7 @@ mod bundled {
 
     fn execute() -> Result<()> {
         checkout_lib()?;
-        bundle_lib()
+        bundle_lib_and_link()
     }
 
     fn get_mosquitto_parent_dir() -> Result<PathBuf> {
@@ -95,7 +100,29 @@ mod bundled {
         Ok(p.join("mosquitto"))
     }
 
-    fn bundle_lib() -> Result<()> {
+    #[cfg(target_os = "linux")]
+    fn build_lib() -> Result<LibInfos> {
+        let client_lib_dir = get_mosquitto_dir()?.join("lib");
+        let cross_compiler = env::var("MOSQUITTO_CROSS_COMPILER").unwrap_or("".to_string());
+        let cc_compiler = env::var("MOSQUITTO_CC").unwrap_or("gcc".to_string());
+        Command::new("make")
+            .env("CROSS_COMPILE", cross_compiler)
+            .env("CC", cc_compiler)
+            .current_dir(&client_lib_dir).args(&[
+            "WITH_TLS=no",
+            "WITH_CJSON=no",
+            "all"
+        ])
+            .status().context("failed to make lib")?;
+        Ok(LibInfos {
+            lib_dir: client_lib_dir.clone(),
+            include_dir: get_mosquitto_dir()?.join("include"),
+        })
+    }
+
+    // todo test
+    #[cfg(not(target_os = "linux"))]
+    fn build_lib() -> Result<LibInfos> {
         let mut cmk_cfg = cmake::Config::new(get_mosquitto_dir()?);
         let cmk = cmk_cfg.define("WITH_BUNDLED_DEPS", "on")
             .define("WITH_EC", "off")
@@ -114,12 +141,19 @@ mod bundled {
             panic!("Unknown library directory.")
         };
 
-        let lib_dir = cmk.join(lib_path);
+        Ok(LibInfos {
+            lib_dir: cmk.join(lib_path),
+            include_dir: cmk.join("include"),
+        })
+    }
+
+    fn bundle_lib_and_link() -> Result<()> {
+        let lib_info = build_lib()?;
 
         let library_name = "mosquitto";
         let link_file = format!("lib{}.so.1", library_name);
 
-        let lib = lib_dir.join(Path::new(&link_file));
+        let lib = lib_info.lib_dir.join(Path::new(&link_file));
         println!("debug:Using mosquitto C library at: {}", lib.display());
 
         if !lib.exists() {
@@ -128,11 +162,10 @@ mod bundled {
         }
 
         // Get bundled bindings or regenerate
-        let inc_dir = cmk.join("include");
-        bindings::place_bindings(&inc_dir);
+        bindings::place_bindings(&lib_info.include_dir);
 
         // we add the folder where all the libraries are built to the path search
-        println!("cargo:rustc-link-search=native={}", lib_dir.display());
+        println!("cargo:rustc-link-search=native={}", lib_info.lib_dir.display());
         println!("cargo:rustc-link-lib={}", "mosquitto");
         Ok(())
     }
@@ -187,6 +220,7 @@ mod bundled {
         }
     }
 }
+
 #[cfg(not(feature = "bundled"))]
 mod bundled {
     pub fn main() {}
