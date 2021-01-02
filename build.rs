@@ -75,6 +75,7 @@ mod bundled {
 
     struct LibInfos {
         lib_dir: PathBuf,
+        lib_name: String,
         include_dir: PathBuf,
     }
 
@@ -116,12 +117,12 @@ mod bundled {
             .status().context("failed to make lib")?;
         Ok(LibInfos {
             lib_dir: client_lib_dir.clone(),
+            lib_name: "libmosquitto.so.1".into(),
             include_dir: get_mosquitto_dir()?.join("include"),
         })
     }
 
-    // todo test
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(target_os = "macos")]
     fn build_lib() -> Result<LibInfos> {
         let mut cmk_cfg = cmake::Config::new(get_mosquitto_dir()?);
         let cmk = cmk_cfg.define("WITH_BUNDLED_DEPS", "on")
@@ -143,6 +144,7 @@ mod bundled {
 
         Ok(LibInfos {
             lib_dir: cmk.join(lib_path),
+            lib_name: "libmosquitto.1.dylib".into(),
             include_dir: cmk.join("include"),
         })
     }
@@ -150,10 +152,7 @@ mod bundled {
     fn bundle_lib_and_link() -> Result<()> {
         let lib_info = build_lib()?;
 
-        let library_name = "mosquitto";
-        let link_file = format!("lib{}.so.1", library_name);
-
-        let lib = lib_info.lib_dir.join(Path::new(&link_file));
+        let lib = lib_info.lib_dir.join(Path::new(&lib_info.lib_name));
         println!("debug:Using mosquitto C library at: {}", lib.display());
 
         if !lib.exists() {
