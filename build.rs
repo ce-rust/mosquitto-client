@@ -106,6 +106,8 @@ mod bundled {
     #[cfg(target_os = "linux")]
     fn build_lib() -> Result<LibInfos> {
         let client_lib_dir = get_mosquitto_dir()?.join("lib");
+        let lib_name = "libmosquitto.so";
+
         let cross_compiler = env::var("MOSQUITTO_CROSS_COMPILER").unwrap_or("".to_string());
         let cc_compiler = env::var("MOSQUITTO_CC").unwrap_or("gcc".to_string());
         Command::new("make")
@@ -117,9 +119,14 @@ mod bundled {
             "all"
         ])
             .status().context("failed to make lib")?;
+        Command::new("ln").current_dir(&client_lib_dir).args(&[
+            "-sf",
+            "libmosquitto.so.1",
+            lib_name
+        ]).status()?;
         Ok(LibInfos {
             lib_dir: client_lib_dir.clone(),
-            lib_name: "libmosquitto.so.1".into(),
+            lib_name: lib_name.into(),
             include_dir: get_mosquitto_dir()?.join("include"),
         })
     }
