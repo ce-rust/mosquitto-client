@@ -106,7 +106,6 @@ mod bundled {
     #[cfg(target_os = "linux")]
     fn build_lib() -> Result<LibInfos> {
         let client_lib_dir = get_mosquitto_dir()?.join("lib");
-        let lib_name = "libmosquitto.so";
 
         let cross_compiler = env::var("MOSQUITTO_CROSS_COMPILER").unwrap_or("".to_string());
         let cc_compiler = env::var("MOSQUITTO_CC").unwrap_or("gcc".to_string());
@@ -116,17 +115,14 @@ mod bundled {
             .current_dir(&client_lib_dir).args(&[
             "WITH_TLS=no",
             "WITH_CJSON=no",
+            "WITH_SHARED_LIBRARIES=no",
+            "WITH_STATIC_LIBRARIES=yes",
             "all"
         ])
             .status().context("failed to make lib")?;
-        Command::new("ln").current_dir(&client_lib_dir).args(&[
-            "-sf",
-            "libmosquitto.so.1",
-            lib_name
-        ]).status()?;
         Ok(LibInfos {
             lib_dir: client_lib_dir.clone(),
-            lib_name: lib_name.into(),
+            lib_name: "libmosquitto.a".into(),
             include_dir: get_mosquitto_dir()?.join("include"),
         })
     }
@@ -143,6 +139,8 @@ mod bundled {
             .define("DOCUMENTATION", "off")
             .define("WITH_CJSON", "off")
             .define("CMAKE_VERBOSE_MAKEFILE", "on")
+            .define("WITH_STATIC_LIBRARIES", "on")
+            .define("WITH_SHARED_LIBRARIES", "off")
             .build();
 
         let lib_path = if cmk.join("lib").exists() {
@@ -153,7 +151,7 @@ mod bundled {
 
         Ok(LibInfos {
             lib_dir: cmk.join(lib_path),
-            lib_name: "libmosquitto.1.dylib".into(),
+            lib_name: "libmosquitto.a".into(),
             include_dir: cmk.join("include"),
         })
     }
@@ -174,7 +172,7 @@ mod bundled {
 
         // we add the folder where all the libraries are built to the path search
         println!("cargo:rustc-link-search=native={}", lib_info.lib_dir.display());
-        println!("cargo:rustc-link-lib={}", "mosquitto");
+        println!("cargo:rustc-link-lib=static={}", "mosquitto");
         Ok(())
     }
 
