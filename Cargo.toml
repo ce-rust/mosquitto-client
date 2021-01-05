@@ -1,6 +1,6 @@
 [package]
 name = "mosquitto-client-wrapper"
-version = "0.3.0"
+version = "0.3.1"
 authors = [
     "Steve Donovan <steve.j.donovan@google.com>",
     "Fabrizio Lazzaretti <fabrizio@lazzaretti.me>"
