@@ -62,7 +62,7 @@ mod bindings {
 mod bundled {
     use std::process::Command;
     use super::*;
-    use std::path::{Path, PathBuf};
+    use std::path::{PathBuf};
     use std::process;
     use std::env;
     use std::fs;
@@ -78,6 +78,7 @@ mod bundled {
     struct LibInfos {
         lib_dir: PathBuf,
         lib_name: String,
+        lib_path: PathBuf,
         include_dir: PathBuf,
     }
 
@@ -122,7 +123,8 @@ mod bundled {
             .status().context("failed to make lib")?;
         Ok(LibInfos {
             lib_dir: client_lib_dir.clone(),
-            lib_name: "libmosquitto.a".into(),
+            lib_name: "mosquitto".into(),
+            lib_path: client_lib_dir.join("libmosquitto.a"),
             include_dir: get_mosquitto_dir()?.join("include"),
         })
     }
@@ -130,28 +132,34 @@ mod bundled {
     #[cfg(target_os = "macos")]
     fn build_lib() -> Result<LibInfos> {
         let mut cmk_cfg = cmake::Config::new(get_mosquitto_dir()?);
-        let cmk = cmk_cfg.define("WITH_BUNDLED_DEPS", "on")
+        let cmk = cmk_cfg
+            .define("WITH_BUNDLED_DEPS", "on")
             .define("WITH_EC", "off")
             .define("WITH_TLS", "off")
             .define("WITH_TLS_PSK", "off")
             .define("WITH_APPS", "off")
             .define("WITH_PLUGINS", "off")
-            .define("DOCUMENTATION", "off")
             .define("WITH_CJSON", "off")
-            .define("CMAKE_VERBOSE_MAKEFILE", "on")
+            .define("WITH_LIB_CPP", "off")
             .define("WITH_STATIC_LIBRARIES", "on")
-            .define("WITH_SHARED_LIBRARIES", "off")
+            .define("WITH_PIC", "off")
+            .define("WITH_CLIENTS", "on")
+            .define("WITH_BROKER", "off")
+            .define("WITH_PLUGINS", "off")
+            .define("DOCUMENTATION", "off")
+            .define("CMAKE_VERBOSE_MAKEFILE", "on")
             .build();
 
-        let lib_path = if cmk.join("lib").exists() {
-            "lib"
+        let lib_dir = if cmk.join("lib").exists() {
+            cmk.join("lib")
         } else {
             panic!("Unknown library directory.")
         };
 
         Ok(LibInfos {
-            lib_dir: cmk.join(lib_path),
-            lib_name: "libmosquitto.a".into(),
+            lib_dir: lib_dir.clone(),
+            lib_name: "mosquitto_static".into(),
+            lib_path: lib_dir.join("libmosquitto_static.a"),
             include_dir: cmk.join("include"),
         })
     }
@@ -159,11 +167,10 @@ mod bundled {
     fn bundle_lib_and_link() -> Result<()> {
         let lib_info = build_lib()?;
 
-        let lib = lib_info.lib_dir.join(Path::new(&lib_info.lib_name));
-        println!("debug:Using mosquitto C library at: {}", lib.display());
+        println!("debug:Using mosquitto C library at: {}", lib_info.lib_path.display());
 
-        if !lib.exists() {
-            println!("Error building mosquitto C library: '{}'", lib.display());
+        if !lib_info.lib_path.exists() {
+            println!("Error building mosquitto C library: '{}'", lib_info.lib_path.display());
             process::exit(103);
         }
 
@@ -172,7 +179,7 @@ mod bundled {
 
         // we add the folder where all the libraries are built to the path search
         println!("cargo:rustc-link-search=native={}", lib_info.lib_dir.display());
-        println!("cargo:rustc-link-lib=static={}", "mosquitto");
+        println!("cargo:rustc-link-lib=static={}", lib_info.lib_name);
         Ok(())
     }
 
